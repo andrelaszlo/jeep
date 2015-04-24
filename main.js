@@ -36,19 +36,25 @@ function Jeep(game) {
     return position;
   }
 
-  function move(step) {
-    position += step;
+  function checkGameover() {
     if (position >= 10000) {
       log("*** YOU WIN ***");
+      self.game.setGameover();
       return;
     }
+    if (gasoline <= 0) {
+      log("*** You ran out of gasoline at " + position + " ***");
+      self.game.setGameover();
+      return;
+    }
+  }
+
+  function move(step) {
+    position += step;
     gasoline -= gasoline_per_km;
     if (position <= 0) {
       position = 0;
       gasoline = 2000;
-    }
-    if (gasoline <= 0) {
-      log("*** You ran out of gasoline at " + position + " ***");
     }
   }
 
@@ -60,15 +66,14 @@ function Jeep(game) {
       //log("Going backwards");
       move(-1);
     } else if (action.put) {
-      var amount = action.put;
-      if (amount < 0) {
-        log("Sneaky!");
-        return;
+      var amount = action.put * 10;
+      if (amount > gasoline) {
+        amount = gasoline;
       }
       gasoline -= amount;
       //log("Storing " + amount + " gasoline at " + self.getPosition());
     } else if (action.get) {
-      var amount = action.get;
+      var amount = action.get * 10;
       var all = '';
       if (typeof(amount) == 'undefined') {
         amount = self.game.stored
@@ -78,6 +83,7 @@ function Jeep(game) {
     } else {
       console.log("Unknown action " + action);
     }
+    checkGameover();
   }
 
   /* Actions */
@@ -89,6 +95,8 @@ function Jeep(game) {
 
 function Game(code) {
   var self = this;
+  var gameover = false;
+
   this.jeep = new Jeep(self);
   this.id = "the game";
   this.stored = {}
@@ -106,7 +114,11 @@ function Game(code) {
     log("*** Stopping simulation ***");
     clearTimeout(self.stepTimeout);
   }
+  this.setGameover = function setGameover() {
+    gameover = true;
+  }
   this.step = function step() {
+    if (gameover) return;
     jeep.performAction(self.act());
     self.printState();
   }
